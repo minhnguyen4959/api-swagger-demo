@@ -8,6 +8,7 @@ import bcrypt from "bcrypt";
 // import { Message } from "../utils/enums";
 // import getFormatDate from "../utils/date";
 // import { connection } from "../utils/mysql";
+import mongoose from "mongoose";
 import utils from "@pureadmin/utils"
 import {Request, Response} from "express";
 import {UserModel} from './../models/user';
@@ -59,7 +60,6 @@ let expiresIn = 60000;
 
 const login = async (req: Request, res: Response) => {
     const { username, password } = req.body;
-    console.log("parameter => ", req.body);
     let data = null;
     try {
         const userExisting = await UserModel.findOne({username});
@@ -67,8 +67,6 @@ const login = async (req: Request, res: Response) => {
             const error = { message: "Invalid username or password", status: 401 };
             throw error;
         }
-        console.log("userExisting =>", userExisting);
-        console.log("userExisting =>", userExisting._id);
         const isMatchPassword = await bcrypt.compare(password, userExisting.password);
 
 
@@ -126,11 +124,8 @@ const login = async (req: Request, res: Response) => {
 const register = async (req: Request, res: Response) => {
     try {
         const { username, password } = req.body;
-        console.log(username, password);
-        
         //duplicate
         const userExisting = await UserModel.findOne({ username }).exec();
-        console.log(userExisting);
         if (userExisting) {
             const error = { message: "Duplicated user !", status: 400 };
             throw error;
@@ -166,20 +161,19 @@ const register = async (req: Request, res: Response) => {
 const update = async (req: Request, res: Response) => {
   const {id} = req.params;
   const {username} = req.body;
-
-  try {
-   UserModel.findByIdAndUpdate(id, {username}, { new: true }).exec()
-    .then((user: any) => {
-        console.log("test update =>", user);
-        if (!user) {
-            res.status(404).json({message: "User not found"})
-        }
-        res.status(200).json({data: user});
-    })
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+        return res.status(404).json({ message: "NOT FOUND" });
+    }
+    try {
+        const docs = await UserModel.findByIdAndUpdate({_id: id}, {username}, { new: true })
+    if (!docs) {
+       return res.status(404).json({message: "User not found"})
+    }
+    return res.status(200).json({data: docs});
 
   } catch (error: any) {
     const status = (error as any).status || 500;
-    res.status(status).json({ error: error.message || "Internal Server Error" });
+    return res.status(status).json({ error: error.message || "Internal Server Error" });
   }
 };
   
@@ -201,12 +195,15 @@ const update = async (req: Request, res: Response) => {
  const remove = async (req: Request, res: Response) => {
     const {id} = req.params;
     try {
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+        return res.status(404).json({ message: "NOT FOUND" });
+    }
 
-    const doc = await UserModel.findByIdAndDelete(id);
-    if(!doc) return res.status(404).json({message: "User not found"})
+    const docs = await UserModel.findByIdAndDelete(id);
+    if(!docs) return res.status(404).json({message: "User not found"})
     return res.status(200).json({
         message: "DELETE OK",
-        data: doc
+        data: docs
     });
 
     } catch (error: any) {

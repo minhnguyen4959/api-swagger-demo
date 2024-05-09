@@ -28,14 +28,16 @@ app.post("/register", (req, res) => {
 app.patch("/users/:id", verifyToken, (req, res) => {
   update(req, res);
 });
-app.get("/test", verifyToken, (req, res) => {
-  res.json({message: "success"})
-});
 
 app.delete("/users/:id", verifyToken, (req, res) => {
   remove(req, res);
 });
 
+
+//test middlewares
+app.get("/test", verifyToken, (req, res) => {
+  res.json({message: "success"})
+});
 
 
 app
